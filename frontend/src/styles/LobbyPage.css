@@ -1,0 +1,150 @@
+.lobby-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.lobby-page .container {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  max-width: 600px;
+  margin: 0 auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.lobby-page h1 {
+  color: #667eea;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.lobby-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 10px;
+}
+
+.lobby-section h2 {
+  color: #667eea;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 10px;
+}
+
+.players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.player-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: white;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.player-item button {
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  background: #e74c3c;
+  color: white;
+}
+
+.player-item button:hover {
+  background: #c0392b;
+}
+
+.add-player {
+  display: flex;
+  gap: 10px;
+}
+
+.add-player input {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+}
+
+.add-player button {
+  padding: 10px 20px;
+  background: #27ae60;
+  color: white;
+}
+
+.add-player button:hover {
+  background: #229954;
+}
+
+.ai-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.ai-controls button {
+  padding: 10px 20px;
+  background: #3498db;
+  color: white;
+}
+
+.ai-controls button:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.ai-controls p {
+  margin: 0;
+  font-weight: bold;
+}
+
+.lobby-section label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.lobby-section input[type='number'] {
+  width: 80px;
+  padding: 8px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+}
+
+.lobby-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.start-btn {
+  flex: 1;
+  padding: 15px;
+  font-size: 1.1rem;
+  background: #27ae60;
+  color: white;
+  font-weight: bold;
+}
+
+.start-btn:hover:not(:disabled) {
+  background: #229954;
+}
+
+.back-btn {
+  flex: 1;
+  padding: 15px;
+  font-size: 1.1rem;
+  background: #95a5a6;
+  color: white;
+}
+
+.back-btn:hover {
+  background: #7f8c8d;
+}
