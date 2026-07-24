@@ -1,0 +1,39 @@
+.player-info {
+  padding: 12px;
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  transition: border-color 0.3s;
+}
+
+.player-info.active {
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+
+.player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.player-header h4 {
+  margin: 0;
+  color: #333;
+}
+
+.score-tokens {
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+}
+
+.player-stats {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.player-stats p {
+  margin: 4px 0;
+}
