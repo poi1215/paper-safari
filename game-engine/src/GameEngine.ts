@@ -7,8 +7,13 @@ import {
   GameStatus,
   PlayerHand,
   GameConfig,
-  DEFAULT_GAME_CONFIG
+  DEFAULT_GAME_CONFIG,
+  GameAction,
+  ActionType,
+  RoundResult,
+  SpecialEffect
 } from './types';
+import { SpecialAbilities } from './SpecialAbilities';
 
 /**
  * Paper Safari Game Engine
@@ -19,6 +24,7 @@ export class GameEngine {
   private config: GameConfig;
   private deck: Card[] = [];
   private discardPile: Card[] = [];
+  private roundResults: RoundResult[] = [];
 
   constructor(playerNames: string[], config: Partial<GameConfig> = {}) {
     this.config = { ...DEFAULT_GAME_CONFIG, ...config };
@@ -175,28 +181,127 @@ export class GameEngine {
     newCard: Card,
     handPosition: number,
     fromDiscard: boolean
-  ): { success: boolean; message: string } {
-    const player = this.gameState.players.find(p => p.id === playerId);
-    if (!player) {
+  ): { success: boolean; message: string; specialCardUsed?: SpecialCardType } {
+    const playerIndex = this.gameState.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) {
       return { success: false, message: 'Player not found' };
     }
 
-    // 버린 카드 더미에서 가져온 경우 반드시 교체해야 함
-    if (fromDiscard) {
-      const oldCard = player.hand.cards[handPosition];
-      player.hand.cards[handPosition] = newCard;
-      this.discardPile.pop(); // 가져온 카드 제거
-      this.discardPile.push(oldCard); // 교체된 카드 추가
+    const player = this.gameState.players[playerIndex];
 
-      return { success: true, message: 'Card swapped successfully' };
+    // 타잔 카드인 경우 특수 처리
+    if (newCard.specialType === SpecialCardType.TARZAN) {
+      return this.handleTarzanCard(playerIndex, newCard, handPosition, fromDiscard);
     }
 
-    // 덱에서 가져온 경우 선택적으로 교체 가능
+    // 코끼리 카드인 경우
+    if (newCard.specialType === SpecialCardType.ELEPHANT) {
+      return this.handleElephantCard(player, newCard, handPosition, fromDiscard);
+    }
+
+    // 일반적인 카드 교체
     const oldCard = player.hand.cards[handPosition];
     player.hand.cards[handPosition] = newCard;
-    this.discardPile.push(oldCard);
+
+    if (fromDiscard) {
+      this.discardPile.pop(); // 가져온 카드 제거
+    }
+    this.discardPile.push(oldCard); // 교체된 카드 추가
+
+    // 뒷면 카드를 공개된 카드로 교체한 경우 자동 공개
+    if (!player.hand.revealedPositions.includes(handPosition)) {
+      player.hand.revealedPositions.push(handPosition);
+    }
 
     return { success: true, message: 'Card swapped successfully' };
+  }
+
+  /**
+   * 타잔 카드 처리 - 모든 플레이어가 순회하며 카드 교체
+   */
+  private handleTarzanCard(
+    startPlayerIndex: number,
+    tarzanCard: Card,
+    tarzanPosition: number,
+    fromDiscard: boolean
+  ): { success: boolean; message: string; specialCardUsed?: SpecialCardType } {
+    try {
+      const { tarzanChain, updatedPlayers } = SpecialAbilities.executeTarzanAbility(
+        this.gameState.players,
+        startPlayerIndex,
+        tarzanCard,
+        tarzanPosition,
+        this.discardPile
+      );
+
+      if (fromDiscard) {
+        this.discardPile.pop();
+      }
+
+      // 기록
+      const action: GameAction = {
+        playerId: this.gameState.players[startPlayerIndex].id,
+        timestamp: new Date(),
+        actionType: ActionType.USE_SPECIAL_ABILITY,
+        details: { specialCard: 'TARZAN', effect: tarzanChain }
+      };
+      this.gameState.history.push(action);
+
+      return {
+        success: true,
+        message: '타잔 카드! 모든 플레이어의 카드가 교체되었습니다!',
+        specialCardUsed: SpecialCardType.TARZAN
+      };
+    } catch (error) {
+      return { success: false, message: 'Failed to execute Tarzan card effect' };
+    }
+  }
+
+  /**
+   * 코끼리 카드 처리 - 뒷면 카드 1장 공개
+   */
+  private handleElephantCard(
+    player: Player,
+    elephantCard: Card,
+    handPosition: number,
+    fromDiscard: boolean
+  ): { success: boolean; message: string; specialCardUsed?: SpecialCardType } {
+    // 뒷면 카드가 있는지 확인
+    const unrevealedPositions = player.hand.cards
+      .map((_, idx) => idx)
+      .filter(idx => !player.hand.revealedPositions.includes(idx));
+
+    if (unrevealedPositions.length === 0) {
+      return { success: false, message: '공개할 뒷면 카드가 없습니다.' };
+    }
+
+    // 코끼리 카드를 손에 배치
+    const oldCard = player.hand.cards[handPosition];
+    player.hand.cards[handPosition] = elephantCard;
+
+    if (fromDiscard) {
+      this.discardPile.pop();
+    }
+    this.discardPile.push(oldCard);
+
+    // 플레이어가 뒷면 카드 중 하나를 선택하여 공개할 수 있도록 표시
+    // (프론트엔드에서 선택 후 revealElephantCard 메서드 호출)
+
+    return {
+      success: true,
+      message: '코끼리 카드! 뒷면 카드 1장을 선택하여 공개하세요.',
+      specialCardUsed: SpecialCardType.ELEPHANT
+    };
+  }
+
+  /**
+   * 코끼리 카드로 뒷면 카드 공개
+   */
+  public revealElephantCard(playerId: string, cardIndex: number): void {
+    const player = this.gameState.players.find(p => p.id === playerId);
+    if (player) {
+      SpecialAbilities.executeElephantAbility(player, cardIndex);
+    }
   }
 
   /**
@@ -213,13 +318,16 @@ export class GameEngine {
   /**
    * 라운드 종료 - 점수 계산
    */
-  public endRound(): { winner: Player; scores: Map<string, number> } {
+  public endRound(): RoundResult {
     const scores = new Map<string, number>();
+    const specialEffectsUsed: SpecialEffect[] = [];
 
-    // 각 플레이어의 점수 계산
+    // 각 플레이어의 점수 계산 (동물친구들 카드 고려)
     this.gameState.players.forEach(player => {
-      const score = this.calculateScore(player.hand.cards);
+      const { score, animalFriendsEffects } =
+        SpecialAbilities.calculateScoreWithAnimalFriends(player.hand.cards);
       scores.set(player.id, score);
+      specialEffectsUsed.push(...animalFriendsEffects);
     });
 
     // 최저 점수 플레이어 찾기
@@ -239,72 +347,28 @@ export class GameEngine {
     // 동점일 경우 높은 카드 비교로 우승자 결정
     let winner = winners[0];
     if (winners.length > 1) {
-      winner = this.resolveTebybreak(winners, scores);
+      winner = this.resolveTiebreaker(winners, scores);
     }
 
     winner.scoreTokens++;
 
-    return { winner, scores };
-  }
+    const roundResult: RoundResult = {
+      winnerId: winner.id,
+      winnerName: winner.name,
+      scores,
+      specialEffectsUsed
+    };
 
-  /**
-   * 점수 계산 로직
-   * - 같은 행의 위/아래 카드가 같은 숫자면 그 열은 0점
-   * - 동물친구들 카드는 양옆 카드의 숫자 복사
-   */
-  private calculateScore(cards: Card[]): number {
-    let totalScore = 0;
+    this.roundResults.push(roundResult);
+    this.gameState.status = 'roundEnd';
 
-    // 3개 열 (각 열은 위아래 2장)
-    for (let col = 0; col < 3; col++) {
-      const topIndex = col;
-      const bottomIndex = col + 3;
-
-      const topCard = cards[topIndex];
-      const bottomCard = cards[bottomIndex];
-
-      // 위/아래가 같은 숫자면 0점
-      if (topCard.value === bottomCard.value) {
-        continue; // 이 열은 0점
-      }
-
-      // 동물친구들 카드 처리
-      const topValue = this.getCardValue(topCard, col, true);
-      const bottomValue = this.getCardValue(bottomCard, col, false);
-
-      totalScore += topValue + bottomValue;
-    }
-
-    return totalScore;
-  }
-
-  /**
-   * 카드의 실제 점수값 반환 (동물친구들 카드 처리)
-   */
-  private getCardValue(card: Card, col: number, isTop: boolean): number {
-    if (card.specialType !== SpecialCardType.ANIMAL_FRIENDS) {
-      return card.value;
-    }
-
-    // 동물친구들 카드는 양옆 카드의 값을 복사
-    if (col === 0) {
-      // 왼쪽 끝: 아래 카드만 복사 가능
-      return this.gameState.players[0].hand.cards[3].value;
-    } else if (col === 2) {
-      // 오른쪽 끝: 위 카드만 복사 가능
-      return this.gameState.players[0].hand.cards[2].value;
-    } else {
-      // 가운데: 양쪽 중 선택 가능 (더 낮은 값 선택)
-      const left = this.gameState.players[0].hand.cards[col - 1].value;
-      const right = this.gameState.players[0].hand.cards[col + 1].value;
-      return Math.min(left, right);
-    }
+    return roundResult;
   }
 
   /**
    * 동점 해제 로직 - 높은 카드부터 비교
    */
-  private resolveTebybreak(winners: Player[], scores: Map<string, number>): Player {
+  private resolveTiebreaker(winners: Player[], scores: Map<string, number>): Player {
     // 각 플레이어의 카드를 내림차순으로 정렬
     const playerCards = winners.map(player => ({
       player,
@@ -338,6 +402,36 @@ export class GameEngine {
   }
 
   /**
+   * 새로운 라운드 시작
+   */
+  public startNewRound(startingPlayerId: string): void {
+    // 카드 재분배
+    this.deck = [];
+    this.discardPile = [];
+    this.createDeck();
+    this.shuffleDeck();
+
+    // 각 플레이어의 손에 새 카드 배분
+    this.gameState.players.forEach(player => {
+      player.hand = this.dealHand();
+    });
+
+    // 시작 플레이어 설정 (점수를 획득한 플레이어부터 시작)
+    const startingPlayerIndex = this.gameState.players.findIndex(
+      p => p.id === startingPlayerId
+    );
+    this.gameState.currentPlayerIndex = startingPlayerIndex;
+
+    // 버린 카드 더미의 첫 카드
+    const firstDiscard = this.deck.pop()!;
+    this.discardPile.push(firstDiscard);
+
+    this.gameState.currentRound++;
+    this.gameState.status = 'playing';
+    this.gameState.updatedAt = new Date();
+  }
+
+  /**
    * 게임 종료 확인
    */
   public isGameOver(): boolean {
@@ -364,6 +458,7 @@ export class GameEngine {
   public nextTurn(): void {
     this.gameState.currentPlayerIndex =
       (this.gameState.currentPlayerIndex + 1) % this.gameState.players.length;
+    this.gameState.updatedAt = new Date();
   }
 
   /**
@@ -374,9 +469,26 @@ export class GameEngine {
   }
 
   /**
+   * 라운드 결과 반환
+   */
+  public getRoundResults(): RoundResult[] {
+    return this.roundResults;
+  }
+
+  /**
    * 게임 ID 생성
    */
   private generateGameId(): string {
     return `game_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * 게임 상태를 JSON으로 직렬화
+   */
+  public toJSON() {
+    return {
+      gameState: this.gameState,
+      roundResults: this.roundResults
+    };
   }
 }
