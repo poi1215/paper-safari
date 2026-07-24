@@ -1,0 +1,119 @@
+.card-hand {
+  padding: 15px;
+}
+
+.hand-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.hand-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.card-slot {
+  aspect-ratio: 2 / 3;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: white;
+  position: relative;
+}
+
+.card-slot:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-slot.selected {
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+
+.card-slot.number {
+  border-color: #3498db;
+}
+
+.card-slot.tarzan {
+  border-color: #f39c12;
+  background: #fff8f0;
+}
+
+.card-slot.elephant {
+  border-color: #e74c3c;
+  background: #fef0f0;
+}
+
+.card-slot.animal-friends {
+  border-color: #27ae60;
+  background: #f0fef0;
+}
+
+.card-slot.hidden {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.card-back {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.special-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  background: #f39c12;
+  color: white;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.card-actions button {
+  flex: 1;
+  padding: 10px;
+  font-size: 0.9rem;
+}
+
+.card-actions button:first-child {
+  background: #27ae60;
+}
+
+.card-actions button:first-child:hover {
+  background: #229954;
+}
+
+.card-actions button:last-child {
+  background: #95a5a6;
+}
+
+.card-actions button:last-child:hover {
+  background: #7f8c8d;
+}
